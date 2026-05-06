@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --scrollbar-thumb: #27365A;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  /* Smooth theme transitions on every element that uses theme tokens via inline styles. */
+  transition: background-color 200ms ease, border-color 200ms ease, color 160ms ease;
+}
+
+/* Don't transition layout-affecting properties via the wildcard above. */
+input, textarea, select { transition: border-color 160ms ease, box-shadow 160ms ease, background-color 200ms ease; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { filter: brightness(1.2); }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+
+/* Keep buttons/inputs from inheriting page transitions on focus rings. */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px currentColor;
+  opacity: 0.95;
+}
+
+/* Slide-in panel for ComplaintDetail */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.animate-slide-in-right { animation: slide-in-right 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* Soft shimmer for translation loading */
+@keyframes shimmer-bg {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.animate-shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer-bg 1.4s linear infinite;
+}

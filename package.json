@@ -1,0 +1,14 @@
+{
+  "name": "alisu",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/server",
+    "apps/dashboard"
+  ],
+  "scripts": {
+    "dev:server": "cd apps/server && npm run dev",
+    "dev:dashboard": "cd apps/dashboard && npm run dev",
+    "ngrok": "cd apps/server && npm run ngrok"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+apps/dashboard/.env.local
+apps/dashboard/.env.production
+/tmp/*.wav
+/tmp/*.mp3
+alisu-claude-code-prompts.md
+.claude
+DEPLOY.md
