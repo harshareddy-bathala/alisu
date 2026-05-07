@@ -11,6 +11,7 @@ import { escalateToHuman } from './verify-loop'
 import { getDepartmentNumber } from './departments'
 import { getCallbackTime, callbackReply } from '../lib/callback-scheduler'
 import { triggerASRReset } from './asr-registry'
+import { writeAlisuAudio } from './call-recorder'
 
 const GREETING_TEXT =
   'ನಮಸ್ಕಾರ! ನಾನು ಅಲಿಸು, ಕರ್ನಾಟಕ 1092 ಹೆಲ್ಪ್‌ಲೈನ್ ನಿಂದ. ನಿಮ್ಮ ಸಮಸ್ಯೆ ಹೇಳಿ, ನಾನು ಸಹಾಯ ಮಾಡುತ್ತೇನೆ.'
@@ -72,6 +73,31 @@ function waitForSpeechEnd(callSid: string, durationMs: number): Promise<void> {
 
 function estimateDurationMs(text: string): number {
   return text.split(/\s+/).filter(Boolean).length * 380 + 600
+}
+
+/** Reads the actual playback duration out of a Sarvam TTS WAV buffer.
+ *  Falls back to 0 (caller will use the word-count estimate) on parse failure. */
+function wavDurationMs(buf: Buffer): number {
+  try {
+    if (buf.length < 44 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return 0
+    const sampleRate   = buf.readUInt32LE(24)
+    const channels     = buf.readUInt16LE(22)
+    const bitsPerSample = buf.readUInt16LE(34)
+    if (!sampleRate || !channels || !bitsPerSample) return 0
+    // Walk past the 'fmt ' chunk to find the 'data' chunk size — Sarvam may
+    // include extra subchunks before 'data'.
+    let pos = 12
+    while (pos + 8 <= buf.length) {
+      const id = buf.toString('ascii', pos, pos + 4)
+      const size = buf.readUInt32LE(pos + 4)
+      if (id === 'data') {
+        const samples = size / channels / (bitsPerSample / 8)
+        return Math.round((samples / sampleRate) * 1000)
+      }
+      pos += 8 + size
+    }
+    return 0
+  } catch { return 0 }
 }
 
 // Map ASR language to a TTS-compatible code. Sarvam bulbul:v3 supports the full
@@ -146,7 +172,14 @@ async function sendSpeech(
 
   socketSend(socket, { type: 'audio_meta', text, language, ...extra })
   socket.send(buf)
-  return estimateDurationMs(text)
+  // Mix Alisu's audio into the call recording so playback contains both sides.
+  writeAlisuAudio(callSid, buf)
+  // Use real WAV duration when available; add a small tail so the WebSocket /
+  // browser audio queue can finish flushing before we end the call. The estimate
+  // remains a safety net for malformed buffers.
+  const real = wavDurationMs(buf)
+  const dur = real > 0 ? real + 500 : estimateDurationMs(text)
+  return dur
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -173,7 +206,9 @@ export async function startCall(
   if (greetingWav) {
     socketSend(socket, { type: 'audio_meta', text: GREETING_TEXT, language: 'kn', isGreeting: true })
     socket.send(greetingWav)
-    duration = estimateDurationMs(GREETING_TEXT)
+    writeAlisuAudio(callSid, greetingWav)
+    const real = wavDurationMs(greetingWav)
+    duration = real > 0 ? real + 500 : estimateDurationMs(GREETING_TEXT)
   } else {
     duration = await sendSpeech(socket, GREETING_TEXT, 'kn', callSid, { isGreeting: true })
   }
@@ -202,8 +237,26 @@ export async function processUserUtterance(
   // Lock immediately to prevent concurrent ASR flushes; show processing state
   callStore.update(callSid, { status: 'processing' })
 
-  // Clamp language to supported set — ASR can misidentify short utterances
-  const lang = normalizeLanguage(language, state.language as string)
+  // Clamp language to supported set — ASR can misidentify short utterances.
+  const detected = normalizeLanguage(language, state.language as string)
+  // Stickiness: once the call has an established language (i.e. citizen has spoken
+  // at least once), keep using it for short / noisy utterances. Code-switching to
+  // a single English place name like "Bommanahalli bus stop" should NOT flip the
+  // whole call to English. We only allow a switch when the new utterance is long
+  // enough (>= 4 words) AND clearly differs from the established language.
+  const userTurnsSoFar = state.conversationHistory.filter(m => m.speaker === 'user').length
+  const established = (state.language as string) || ''
+  const wordCount = utterance.trim().split(/\s+/).filter(Boolean).length
+  let lang = detected
+  if (
+    userTurnsSoFar > 0 &&            // we already know the call's language
+    established &&                   // and it's set
+    detected !== established &&      // ASR claims a different language
+    wordCount < 4                    // but the utterance is too short to trust the claim
+  ) {
+    lang = established
+    console.log(`[LANG] Sticking with '${established}' instead of '${detected}' (utterance only ${wordCount} word(s))`)
+  }
 
   // Add user utterance to conversation history
   const userMsg: ConversationMessage = {
@@ -274,19 +327,29 @@ export async function processUserUtterance(
     timestamp: new Date(),
   }
 
+  // If the LLM chose to reply in a different language than what we detected
+  // (e.g. citizen explicitly asked Alisu to speak in Tamil), promote that to
+  // the call's primary language so future stickiness checks compare correctly.
+  const replyLangFull = normalizeLanguage(alisuReply.language, lang)
+  const promotedLang = replyLangFull !== lang ? replyLangFull : lang
+
   callStore.update(callSid, {
     conversationHistory: [...history, alisuMsg],
     conversationStep:    alisuReply.conversationStep,
     followUpCount:       alisuReply.conversationStep === 'gather'
                            ? state.followUpCount + 1
                            : state.followUpCount,
+    language:      promotedLang,
     intent:        alisuReply.complaintData?.issueSummary || state.intent,
     department:    alisuReply.department || state.department,
     urgency:       alisuReply.urgency,
     sentiment:     alisuReply.sentiment,
     needsHuman:    alisuReply.needsHuman,
     priority:      urgencyToPriority(alisuReply.urgency),
-    irrelevantCount: alisuReply.shouldHangup
+    // Increment on every off-topic turn so we can hang up after a few of them.
+    // Previously we only counted shouldHangup, which meant the count never went
+    // up and the LLM kept answering off-topic queries indefinitely.
+    irrelevantCount: (alisuReply.isOffTopic || alisuReply.shouldHangup)
                        ? state.irrelevantCount + 1
                        : state.irrelevantCount,
     isResolved:    alisuReply.isResolved,

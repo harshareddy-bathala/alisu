@@ -69,11 +69,9 @@ export async function mediaStreamRoute(fastify: FastifyInstance) {
 
         const effectiveSocket = isLocal ? socket : createTwilioProxy(socket, streamSid)
 
-        // Long merge window — gives a chance for the next ASR fragment to land
-        // before we hand the utterance off to the LLM. Real callers pause 2–3s
-        // mid-thought, and we don't want each pause to become its own turn.
-        // Total worst case before LLM is called: SILENCE_DURATION_MS (2.5s) + this (2.2s) = 4.7s of silence.
-        const MERGE_WINDOW_MS = 2200
+        // Merge window catches ASR fragmenting one utterance into multiple flushes.
+        // Worst case before LLM is called: SILENCE_DURATION_MS (1.4s) + this (0.7s) = 2.1s of silence.
+        const MERGE_WINDOW_MS = 700
 
         const flushUtterance = async () => {
           mergeTimer = null

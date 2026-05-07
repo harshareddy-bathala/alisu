@@ -43,7 +43,7 @@ const SAMPLE_RATE = 16000
 // The dynamic threshold (max of floor and noiseFloor*SNR_RATIO) MUST stay
 // below the bottom of that range, or the user's voice gets classified as noise.
 const SILENCE_THRESHOLD      = 0.014  // hard RMS floor — quieter than this is always silence
-const SILENCE_DURATION_MS    = 2500   // 2.5s pause to end utterance — long enough for citizens to gather a thought
+const SILENCE_DURATION_MS    = 1400   // 1.4s pause to end utterance — fast enough for snappy turns, long enough for natural mid-thought beats
 const MIN_SPEECH_DURATION_MS = 500    // discard chunks shorter than this (filters cough/click bursts)
 const MAX_CHUNK_DURATION_MS  = 25000  // max utterance window — citizens often need 20s+ to describe a complex issue
 const NOISE_FLOOR_ALPHA      = 0.992  // EMA over ambient
