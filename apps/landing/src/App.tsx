@@ -427,7 +427,7 @@ function Demo() {
           className="reveal relative rounded-3xl overflow-hidden glass animate-slide-pane"
           style={{ aspectRatio: '16/9', boxShadow: '0 60px 120px -40px rgba(124,140,255,0.4)' }}
         >
-          {VIDEO_ID && VIDEO_ID !== 'YOUR_YOUTUBE_VIDEO_ID' ? (
+          {VIDEO_ID ? (
             <iframe
               src={`https://www.youtube.com/embed/${VIDEO_ID}?rel=0&modestbranding=1`}
               title="Alisu demo"
