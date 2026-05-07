@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 /* ────────────────── CONFIG (edit these for your demo) ────────────────── */
-const DEMO_URL    = 'https://alisu.example.com'           // ← your DigitalOcean dashboard URL
-const GITHUB_URL  = 'https://github.com/your-handle/alisu' // ← your repo
-const VIDEO_ID    = 'YOUR_YOUTUBE_VIDEO_ID'                // ← YouTube ID (e.g. dQw4w9WgXcQ)
+const DEMO_URL    = 'https://www.youtube.com/watch?v=2gmKhe9Cabc' // ← your DigitalOcean dashboard URL
+const GITHUB_URL  = 'https://github.com/harshareddy-bathala/alisu' // ← your repo
+const VIDEO_ID    = '2gmKhe9Cabc'                // ← YouTube ID (e.g. dQw4w9WgXcQ)
 
 const LANGUAGES = [
   { code: 'kn', name: 'Kannada',   word: 'ನಮಸ್ಕಾರ',     color: '#7C8CFF' },
