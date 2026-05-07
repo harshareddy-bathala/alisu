@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /* ────────────────── CONFIG (edit these for your demo) ────────────────── */
-const DEMO_URL    = 'https://www.youtube.com/watch?v=2gmKhe9Cabc' // ← your DigitalOcean dashboard URL
+const DEMO_URL    = 'http://167.71.238.122' // ← your DigitalOcean dashboard URL
 const GITHUB_URL  = 'https://github.com/harshareddy-bathala/alisu' // ← your repo
 const VIDEO_ID    = '2gmKhe9Cabc'                // ← YouTube ID (e.g. dQw4w9WgXcQ)
 
