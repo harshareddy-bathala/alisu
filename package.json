@@ -4,11 +4,14 @@
   "private": true,
   "workspaces": [
     "apps/server",
-    "apps/dashboard"
+    "apps/dashboard",
+    "apps/landing"
   ],
   "scripts": {
-    "dev:server": "cd apps/server && npm run dev",
+    "dev:server":    "cd apps/server && npm run dev",
     "dev:dashboard": "cd apps/dashboard && npm run dev",
-    "ngrok": "cd apps/server && npm run ngrok"
+    "dev:landing":   "cd apps/landing && npm run dev",
+    "build:landing": "cd apps/landing && npm run build",
+    "ngrok":         "cd apps/server && npm run ngrok"
   }
 }

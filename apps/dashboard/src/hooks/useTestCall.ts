@@ -3,9 +3,11 @@ import { AudioEngine } from '../lib/audio-engine'
 import { CallSocket, CallSocketStatus } from '../lib/call-socket'
 
 // Interrupt fires only when amplitude stays above this for INTERRUPT_SUSTAIN_FRAMES frames.
-// Amplitude is now raw RMS (0..1) — well above fan/traffic noise but below speech.
-const INTERRUPT_THRESHOLD      = 0.04  // raw RMS — fans / room tone live around 0.005–0.015
-const INTERRUPT_SUSTAIN_FRAMES = 3     // ~255ms sustained (3 × 4096/48000 ≈ 85ms each)
+// Amplitude is raw RMS (0..1). Speech RMS sits ~0.04–0.15; clicks/coughs spike
+// briefly to ~0.04–0.08. To interrupt Alisu we require BOTH a higher floor AND
+// a longer sustain window so a single noise burst can't cut Alisu off.
+const INTERRUPT_THRESHOLD      = 0.10  // genuine speech volume
+const INTERRUPT_SUSTAIN_FRAMES = 7     // ~595ms sustained (7 × 4096/48000 ≈ 85ms each)
 
 export interface TestCallState {
   isActive: boolean

@@ -239,23 +239,46 @@ export async function processUserUtterance(
 
   // Clamp language to supported set — ASR can misidentify short utterances.
   const detected = normalizeLanguage(language, state.language as string)
-  // Stickiness: once the call has an established language (i.e. citizen has spoken
-  // at least once), keep using it for short / noisy utterances. Code-switching to
-  // a single English place name like "Bommanahalli bus stop" should NOT flip the
-  // whole call to English. We only allow a switch when the new utterance is long
-  // enough (>= 4 words) AND clearly differs from the established language.
-  const userTurnsSoFar = state.conversationHistory.filter(m => m.speaker === 'user').length
+  // Stickiness: once the call has an established language, keep using it for
+  // short / address-shaped / noisy utterances. Without this, "Hosur Main Road
+  // Bommanahalli" inside a Kannada call flips Alisu to English on the next reply.
   const established = (state.language as string) || ''
-  const wordCount = utterance.trim().split(/\s+/).filter(Boolean).length
+  const userTurns = state.conversationHistory.filter(m => m.speaker === 'user')
+  const userTurnsSoFar = userTurns.length
+  const trimmed = utterance.trim()
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length
+  // Heuristic: utterance looks like a bare address — short-to-medium, mostly
+  // ASCII letters (Indian addresses are often spoken in Roman script even
+  // mid-Kannada), and contains an address-ish keyword. ASR commonly tags these
+  // as English even when the citizen's overall call language is Indic.
+  const ASCII_RATIO = (() => {
+    const total = trimmed.length || 1
+    const ascii = trimmed.replace(/[^\x00-\x7F]/g, '').length
+    return ascii / total
+  })()
+  const ADDRESS_HINT = /\b(road|street|nagar|layout|extension|cross|main|stage|colony|sector|block|circle|stop|bus|halli|pura|gere|katte|pet|peta|mohalla|gali|chowk|chawl|town|city|district|state|pin)\b/i
+  const looksLikeAddress = wordCount <= 8 && ASCII_RATIO > 0.7 && ADDRESS_HINT.test(trimmed)
+
   let lang = detected
-  if (
-    userTurnsSoFar > 0 &&            // we already know the call's language
-    established &&                   // and it's set
-    detected !== established &&      // ASR claims a different language
-    wordCount < 4                    // but the utterance is too short to trust the claim
-  ) {
+  let stickReason: string | null = null
+  if (userTurnsSoFar > 0 && established && detected !== established) {
+    if (wordCount < 8) {
+      stickReason = `utterance only ${wordCount} word(s)`
+    } else if (looksLikeAddress) {
+      stickReason = 'utterance looks like an address (proper nouns + address keyword)'
+    } else if (
+      // If the last 2 user turns were in the established language, treat this
+      // single different-language turn as a code-switching slip rather than a
+      // real switch — citizens often slip into English for technical / proper
+      // nouns then return to their primary language.
+      userTurns.slice(-2).every(m => normalizeLanguage(m.language, established) === established)
+    ) {
+      stickReason = 'last 2 user turns were in established language; ignoring single-turn switch'
+    }
+  }
+  if (stickReason) {
     lang = established
-    console.log(`[LANG] Sticking with '${established}' instead of '${detected}' (utterance only ${wordCount} word(s))`)
+    console.log(`[LANG] Sticking with '${established}' instead of '${detected}' (${stickReason})`)
   }
 
   // Add user utterance to conversation history
@@ -319,7 +342,7 @@ export async function processUserUtterance(
     }
   }
 
-  // Add Alisu reply to history
+  // Add Alisu reply to history (deferred broadcast — see below)
   const alisuMsg: ConversationMessage = {
     speaker:   'alisu',
     text:      replyText,
@@ -333,8 +356,13 @@ export async function processUserUtterance(
   const replyLangFull = normalizeLanguage(alisuReply.language, lang)
   const promotedLang = replyLangFull !== lang ? replyLangFull : lang
 
+  // Update non-history state immediately so the dashboard reflects step /
+  // department / urgency etc., but DO NOT yet append alisuMsg to
+  // conversationHistory — we want the message bubble to appear in sync with
+  // audio_meta, not before it. Otherwise the dashboard shows the full reply
+  // first, then "switches" to the word-by-word animation when audio starts,
+  // which looks like the message flickered.
   callStore.update(callSid, {
-    conversationHistory: [...history, alisuMsg],
     conversationStep:    alisuReply.conversationStep,
     followUpCount:       alisuReply.conversationStep === 'gather'
                            ? state.followUpCount + 1
@@ -360,6 +388,16 @@ export async function processUserUtterance(
   })
   broadcastCallUpdate(callSid)
 
+  // Helper to commit alisuMsg to history AFTER audio_meta has been sent so
+  // the dashboard renders the bubble at the same instant audio begins playing.
+  const commitAlisuMessageToHistory = (text = replyText) => {
+    const cur = callStore.get(callSid)
+    if (!cur) return
+    const finalMsg = { ...alisuMsg, text }
+    callStore.update(callSid, { conversationHistory: [...history, finalMsg] })
+    broadcastCallUpdate(callSid)
+  }
+
   // ── Speak the reply ───────────────────────────────────────────────────────
 
   // Human transfer — check if we can actually connect before speaking
@@ -375,18 +413,12 @@ export async function processUserUtterance(
       callbackTime = getCallbackTime()
       speakText = callbackReply(alisuReply.language as 'kn' | 'hi' | 'en', dept, callbackTime)
       callStore.update(callSid, { callbackTime })
-      // Also update the alisuMsg in history to reflect what was actually said
-      callStore.update(callSid, {
-        conversationHistory: [
-          ...history,
-          { ...alisuMsg, text: speakText },
-        ],
-      })
     }
 
     callStore.update(callSid, { status: 'speaking' })
     broadcastCallUpdate(callSid)
     const dur = await sendSpeech(socket, speakText, alisuReply.language, callSid)
+    commitAlisuMessageToHistory(speakText)
     if (dur > 0) await waitForSpeechEnd(callSid, dur)
 
     if (canTransfer) {
@@ -404,6 +436,7 @@ export async function processUserUtterance(
     callStore.update(callSid, { status: 'speaking' })
     broadcastCallUpdate(callSid)
     const dur = await sendSpeech(socket, replyText, alisuReply.language, callSid)
+    commitAlisuMessageToHistory()
     if (dur > 0) await waitForSpeechEnd(callSid, dur)
     callStore.update(callSid, { status: 'ended' })
     broadcastCallUpdate(callSid)
@@ -415,6 +448,7 @@ export async function processUserUtterance(
   callStore.update(callSid, { status: 'speaking' })
   broadcastCallUpdate(callSid)
   const dur = await sendSpeech(socket, replyText, alisuReply.language, callSid)
+  commitAlisuMessageToHistory()
   if (dur > 0) await waitForSpeechEnd(callSid, dur)
 
   if (alisuReply.shouldClose) {

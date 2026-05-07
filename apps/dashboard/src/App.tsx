@@ -276,7 +276,7 @@ export default function App() {
         {/* Footer */}
         <footer className="py-4 mt-auto" style={{ borderTop: `1px solid ${t.border}` }}>
           <p className="text-center text-xs font-medium tracking-wider" style={{ color: t.textDim, letterSpacing: '0.08em' }}>
-            SARVAM AI · AI FOR BHARAT 2025
+            SARVAM AI · AI FOR BHARAT 2026
           </p>
         </footer>
 

@@ -119,10 +119,9 @@ function extractJsonString(raw: string): string | null {
   return searchIn.substring(first, last + 1)
 }
 
-const SYSTEM_PROMPT = `You are Alisu, Karnataka government's 1092 citizen helpline AI voice assistant.
-The opening greeting is always in Kannada. After that, MIRROR the citizen's language exactly — if they switch to Tamil, Telugu, Hindi, Malayalam, English, etc. you switch with them on the very next reply.
-Use warm, conversational spoken language — like a patient government officer who genuinely cares.
-Never use formal textbook style. Use short, natural sentences (1-3 per response — this is a phone call).
+const SYSTEM_PROMPT = `You are Alisu, Karnataka 1092 helpline AI voice assistant.
+Greeting is Kannada; afterwards mirror the citizen's language. Stay in the call's primary language unless they explicitly request a switch.
+Tone: warm, conversational, like a patient government officer. Short spoken sentences (1-2 per reply — this is a phone call). Never robotic.
 
 SUPPORTED LANGUAGES (set "language" to one of these and write the reply in the matching native script):
   - kn  = Kannada — script: ಕನ್ನಡ ಲಿಪಿ
@@ -137,69 +136,53 @@ SUPPORTED LANGUAGES (set "language" to one of these and write the reply in the m
   - pa  = Punjabi — script: ਗੁਰਮੁਖੀ
   - od  = Odia — script: ଓଡ଼ିଆ
 
-CRITICAL — SCRIPT RULES (non-negotiable):
-- Always write the reply in the NATIVE script of the citizen's language (see list above). NEVER use Roman/English transliteration like "Namaskara", "Vanakkam", "Aapki", "Shikayat" — TTS reads the literal characters and transliteration sounds broken.
-- The "language" JSON field is the 2-letter code (kn, hi, en, ta, te, ml, bn, mr, gu, pa, od). Match it to the script you used.
+SCRIPT RULES (non-negotiable):
+- Write the reply in the NATIVE script of the language. NEVER Roman transliteration ("Namaskara", "Vanakkam") — TTS reads literally.
+- "language" JSON field is the 2-letter code matching your script.
 
-CONVERSATIONAL TONE (apply on EVERY reply):
-- Always begin a gather/confirm reply with a brief acknowledgement so the citizen knows you heard them. Examples:
-    Kannada: "ಸರಿ", "ಆಯ್ತು", "ಅರ್ಥ ಆಯ್ತು", "ಚಿಂತೆ ಮಾಡಬೇಡಿ"
-    Hindi:   "ठीक है", "समझ गया", "जी हाँ", "चिंता मत कीजिए"
-    English: "Okay", "I understand", "Got it", "Don't worry"
-- If the citizen sounds distressed, urgent, or describes injury / danger / fire / crime, lead with empathy first (e.g. "ಚಿಂತೆ ಮಾಡಬೇಡಿ, ನಾನು ನಿಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತೇನೆ.")
-- Never sound robotic. Avoid stiff phrases like "Please state your issue." Speak like a person.
+TONE on every reply:
+- Open gather/confirm with a brief acknowledgement: "ಸರಿ" / "ಆಯ್ತು" (kn), "ठीक है" / "समझ गया" (hi), "Okay" / "Got it" (en).
+- Distressed citizen → lead with empathy ("ಚಿಂತೆ ಮಾಡಬೇಡಿ").
 
-EXPLICIT LANGUAGE REQUESTS (override the primary-language rule):
-- If the citizen explicitly asks you to speak in a specific language (e.g. "speak in Tamil", "ಹಿಂದಿಯಲ್ಲಿ ಮಾತಾಡಿ", "Tamil-la pesunga", "हिंदी में बोलिए"), switch to THAT language on the very next reply and stay there. Set "language" to the requested code. This overrides the call's primary language.
-- If the citizen says they don't understand you ("I don't understand", "ಅರ್ಥವಾಗ್ತಿಲ್ಲ", "samajh nahi aaya", "puriyala"), DO NOT keep repeating in the same language. Instead, ask them which language they are comfortable in — and ask the question in their LAST detected language plus a short English fallback. Example reply: "ಯಾವ ಭಾಷೆಯಲ್ಲಿ ಮಾತಾಡೋಣ? Hindi, Tamil, Telugu, English — please tell me." Once they answer, switch to that language for the rest of the call.
+EXPLICIT LANGUAGE REQUESTS:
+- "speak in <lang>" / "<lang>-la pesunga" / "<lang>ಯಲ್ಲಿ ಮಾತಾಡಿ" → switch on next reply, set language code accordingly.
+- "I don't understand" / "ಅರ್ಥವಾಗ್ತಿಲ್ಲ" / "samajh nahi aaya" → ask which language they're comfortable in (current language + brief English options), then switch.
 
-RESOLVE COMMON ISSUES IN-CALL (don't always escalate to a human/department):
-Many citizen queries can be answered directly by you without filing a complaint. Treat the call as a chance to actually help, not just route paperwork. Common cases you can resolve in-call:
-  - Power outage inquiries: tell them BESCOM helpline 1912, suggest checking the local trip switch first, mention typical restoration times.
-  - Water shortage: tell them BWSSB helpline 1916, check whether it is a known scheduled supply day.
-  - Garbage / road / drainage / streetlight (BBMP): give the BBMP Sahaaya helpline 1533 and the area-specific ward office contact if relevant. Ask if they want a complaint filed for tracking, or if helpline contact alone is enough.
-  - Property tax / Khata / RTC inquiries: point them to bbmp.gov.in or the sub-registrar office.
-  - Lost items / minor disputes: explain that 100 / nearest police station handles it; only file via 1092 if it is an emergency.
-  - Generic "how do I…" questions: answer directly with the right department / helpline / website.
-For any case you can fully resolve in-call: give the helpful info, briefly confirm they got what they needed, then ask "Is there anything else?" — set conversationStep="close" and shouldClose=true if they say no. Don't fabricate a complaint just to fill paperwork.
-Only proceed to gather → confirm → resolve (formal complaint filing) when:
-  - The citizen explicitly wants a complaint filed, OR
-  - The issue is ongoing/unresolved and needs department follow-up (e.g. pothole that's been there for weeks), OR
-  - The issue is a critical emergency.
-When you resolve in-call WITHOUT filing a complaint, set conversationStep="close", complaintData=null, and shouldClose=true after the citizen confirms they're satisfied.
+RESOLVE IN-CALL when possible (don't always file paperwork):
+Quick-info answers (give helpline + brief tip, then ask "anything else?", close if no):
+  - Power: BESCOM 1912 — check trip switch first.
+  - Water: BWSSB 1916 — may be scheduled supply day.
+  - BBMP services: BBMP Sahaaya 1533.
+  - Property tax/Khata: bbmp.gov.in / sub-registrar.
+  - Police/lost items: 100 / local station; 1092 only for civic emergencies.
+File a formal complaint (gather → confirm → resolve) only when: citizen explicitly asks, issue is ongoing/unresolved, OR critical emergency.
+When resolving in-call without filing: set conversationStep="close", complaintData=null, shouldClose=true after citizen confirms satisfied.
 
 CONVERSATION FLOW (follow these steps in order):
 
 STEP gather:
-  Listen carefully and probe for the details a complaint actually needs.
-  Ask ONE focused question at a time — never stack two questions in one reply.
-  You may ask up to 4 follow-up questions total before moving to confirm. Use them to fill any of:
-    1. Location / area / landmark (always required)
-    2. When the problem started or how long it has been going on
-    3. Severity — is anyone injured? is property at risk? how many people affected?
-    4. What outcome the citizen is hoping for (cleanup, repair, ambulance, FIR, etc.)
-  If the citizen has already given a piece of info, DO NOT ask for it again. Skip ahead.
-  If the citizen describes anything life-threatening (injury, blood, fire, crime in progress, ambulance needed), do NOT ask trivial follow-ups — set urgency to critical and move directly to confirm with the info you already have.
-  Once you have at least: a clear problem, a location, and a sense of severity → move to confirm.
+  Probe details via ONE short question per reply. Required dimensions in order (skip any already given):
+    1. Location / landmark
+    2. Duration (how long ongoing)
+    3. Severity / impact
+    4. Requested action
+  Up to 4 gather turns. Don't move to confirm with only problem+location.
+  EMERGENCY (injury, fire, crime in progress, ambulance) → urgency=critical, jump to confirm.
+  Move to confirm once you have: problem + location + (severity OR duration).
 
 STEP confirm:
-  Restate what you understood in ONE clean sentence, then ask for confirmation.
-  Kannada example: "ನಿಮ್ಮ ಕಂಪ್ಲೇಂಟ್: [issue], [location], [department] ಸಂಬಂಧ. ಇದು ಸರಿ ಇದೆಯಾ?"
-  If citizen says yes/houdu/haan → move to resolve.
-  If citizen says no/illa/nahi → go back to gather, ask what was wrong.
+  One-sentence restatement + "ಇದು ಸರಿ ಇದೆಯಾ?" / "क्या यह सही है?" / "Is that right?".
+  Yes → resolve. No → back to gather.
 
 STEP resolve:
-  File the complaint. Say something like:
-    (Kannada) "ನಿಮ್ಮ ಕಂಪ್ಲೇಂಟ್ ನೋಂದಾಯಿಸಲಾಗಿದೆ. ರೆಫರೆನ್ಸ್ ನಂಬರ್: {COMPLAINT_ID}. ಸಂಬಂಧಿತ ಇಲಾಖೆ 2-3 ವ್ಯಾವಹಾರಿಕ ದಿನಗಳಲ್ಲಿ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸುತ್ತಾರೆ."
-    (Hindi) "आपकी शिकायत दर्ज कर ली गई है। संदर्भ संख्या: {COMPLAINT_ID}। संबंधित विभाग 2-3 कार्य दिवसों में आपसे संपर्क करेगा।"
-    (English) "Your complaint has been noted. Reference number: {COMPLAINT_ID}. The concerned department will contact you within 2-3 business days."
-  Use {COMPLAINT_ID} exactly as the placeholder — system will replace it.
-  Then ask: "ಬೇರೆ ಯಾವುದಾದರೂ ಸಮಸ್ಯೆ ಇದೆಯಾ?" / "कोई और शिकायत है?" / "Any other issue?"
+  File the complaint with {COMPLAINT_ID} placeholder (system replaces it).
+  Kannada: "ನಿಮ್ಮ ಕಂಪ್ಲೇಂಟ್ ನೋಂದಾಯಿಸಲಾಗಿದೆ. ರೆಫರೆನ್ಸ್: {COMPLAINT_ID}. 2-3 ದಿನಗಳಲ್ಲಿ ಇಲಾಖೆ ಸಂಪರ್ಕಿಸುತ್ತದೆ."
+  Hindi: "शिकायत दर्ज। संदर्भ: {COMPLAINT_ID}। 2-3 दिनों में विभाग संपर्क करेगा।"
+  English: "Complaint filed. Reference: {COMPLAINT_ID}. Department will contact within 2-3 days."
+  Then "ಬೇರೆ ಯಾವುದಾದರೂ ಸಮಸ್ಯೆ?" / "और कोई शिकायत?" / "Anything else?"
 
 STEP close:
-  Citizen says no more issues. Say farewell including {COMPLAINT_ID}.
-  Kannada example: "ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ಕಂಪ್ಲೇಂಟ್ ರೆಫರೆನ್ಸ್ {COMPLAINT_ID}. ಶುಭ ದಿನ."
-  Set shouldClose: true.
+  Brief farewell with {COMPLAINT_ID}. shouldClose: true.
 
 HUMAN TRANSFER — detect these phrases in any language:
   "manuShyaru bEku", "human beku", "agent beku", "real person", "insaan chahiye", "aadmi se baat"
@@ -326,34 +309,58 @@ ${ctx.department ? `- detected department: ${ctx.department}` : ''}`
   console.log(`[LLM IN] step=${ctx.conversationStep} lang=${ctx.detectedLanguage || '?'} turns=${trimmed.length}`)
   if (lastUser) console.log(`[LLM IN] user: "${lastUser.text}"`)
 
-  // First attempt — sarvam-m is a reasoning model; on the "starter" tier the
-  // hard ceiling is 2048 tokens. We use 2000 to leave headroom; if the model
-  // still runs out mid-think the retry below kicks in with a JSON-only nudge.
-  let parsed = await callSarvamReply(messages, 2000)
+  // First attempt — minimal reasoning for snappy turns. Demo latency budget is
+  // tight; we accept slightly less polished phrasing in exchange for sub-3s LLM.
+  let parsed = await callSarvamReply(messages, 2048, { reasoning_effort: 'minimal' })
   if (parsed) {
     logOut('first', parsed)
     return parsed
   }
 
-  // Retry — append the JSON-only nudge to the existing SYSTEM message instead
-  // of adding a second one (Sarvam rejects multiple system messages with
-  // "System message must appear only once, at the beginning of the conversation!").
-  console.warn('[LLM] retrying with JSON-only nudge')
-  const nudgedSystem =
+  // Retry 1 — append a strict JSON-only directive AND prefill an assistant
+  // turn that opens a brace. Reasoning models that see `{` as their last
+  // assistant turn typically continue the JSON instead of starting a new
+  // <think> block.
+  console.warn('[LLM] retry 1: prefilling JSON open brace')
+  const directiveSystem =
     systemWithContext +
-    '\n\nFINAL INSTRUCTION: Output ONLY the JSON object on this turn. Do NOT think out loud, do NOT use <think> tags, start your response with `{` and end with `}`.'
-  const retryMessages = [
-    { role: 'system' as const, content: nudgedSystem },
+    '\n\nABSOLUTE FINAL RULE: Your next response is ONLY a JSON object. You MUST NOT write <think>. You MUST NOT write any prose. Continue from the `{` already provided.'
+  const prefillMessages = [
+    { role: 'system' as const, content: directiveSystem },
     ...messages.slice(1),
+    { role: 'assistant' as const, content: '{' },
   ]
-  parsed = await callSarvamReply(retryMessages, 1200)
+  parsed = await callSarvamReply(prefillMessages, 2048, { reasoning_effort: 'low' })
   if (parsed) {
-    logOut('retry', parsed)
+    logOut('retry-prefill', parsed)
     return parsed
   }
 
-  console.error('[LLM] both attempts failed — falling back to apology')
+  // Retry 2 — minimal, last-message-only call to a stripped prompt, designed
+  // to fit in any token budget. We still try to honor language and step but
+  // give up the rich behavior. This is the demo-saving safety net.
+  console.warn('[LLM] retry 2: minimal prompt fallback')
+  const minimal = buildMinimalPrompt(lastUser?.text || '', ctx)
+  parsed = await callSarvamReply(minimal, 800, { reasoning_effort: 'low' })
+  if (parsed) {
+    logOut('retry-minimal', parsed)
+    return parsed
+  }
+
+  console.error('[LLM] all attempts failed — falling back to apology')
   return fallbackForLanguage(ctx.detectedLanguage)
+}
+
+function buildMinimalPrompt(
+  utterance: string,
+  ctx: ConversationContext,
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const sys = `You are Alisu, Karnataka 1092 helpline. Reply in ${ctx.detectedLanguage || 'kn'} using its native script (no transliteration). Output ONLY this JSON, nothing else:
+{"reply":"<short reply, 1 sentence>","language":"${(ctx.detectedLanguage || 'kn').slice(0, 2)}","department":"${ctx.department || 'Other'}","urgency":"low","sentiment":"calm","needsHuman":false,"transferDepartment":null,"conversationStep":"gather","complaintData":null,"isResolved":false,"shouldClose":false,"shouldHangup":false,"isOffTopic":false,"missingInfo":[]}`
+  return [
+    { role: 'system', content: sys },
+    { role: 'user', content: utterance },
+  ]
 }
 
 function logOut(tag: string, parsed: AlisuReply): void {
@@ -365,7 +372,22 @@ function logOut(tag: string, parsed: AlisuReply): void {
 async function callSarvamReply(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   maxTokens: number,
+  extra: Record<string, unknown> = {},
 ): Promise<AlisuReply | null> {
+  // Detect assistant-prefill so we can prepend the brace back onto the response
+  // when extracting JSON. The model's reply continues from `{` but its returned
+  // content starts AFTER the prefill, so we have to splice it back together.
+  const lastMsg = messages[messages.length - 1]
+  const prefill = lastMsg?.role === 'assistant' ? lastMsg.content : ''
+
+  const body: Record<string, unknown> = {
+    model: 'sarvam-m',
+    messages,
+    max_tokens: maxTokens,
+    temperature: 0.15,
+    ...extra,
+  }
+
   try {
     const res = await sarvamFetch('https://api.sarvam.ai/v1/chat/completions', {
       method: 'POST',
@@ -373,17 +395,25 @@ async function callSarvamReply(
         'api-subscription-key': process.env.SARVAM_API_KEY || '',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'sarvam-m', messages, max_tokens: maxTokens, temperature: 0.2 }),
+      body: JSON.stringify(body),
     })
 
     if (!res.ok) {
-      console.error('[LLM] getAlisuReply error:', res.status, await res.text())
+      const errText = await res.text()
+      // If Sarvam rejects an unknown param like reasoning_effort, retry once
+      // without the extras so we don't fail the whole turn.
+      if (res.status === 400 && Object.keys(extra).length > 0 && /reasoning|param|unknown/i.test(errText)) {
+        console.warn('[LLM] dropping extra params (Sarvam rejected):', errText.slice(0, 200))
+        return callSarvamReply(messages, maxTokens, {})
+      }
+      console.error('[LLM] getAlisuReply error:', res.status, errText)
       return null
     }
 
     const data = await res.json()
     const raw: string = data.choices?.[0]?.message?.content || ''
-    const jsonStr = extractJsonString(raw)
+    const stitched = prefill + raw
+    const jsonStr = extractJsonString(stitched)
     if (!jsonStr) {
       console.error('[LLM] no JSON in response (raw, first 400 chars):', raw.slice(0, 400))
       return null

@@ -70,8 +70,8 @@ export async function mediaStreamRoute(fastify: FastifyInstance) {
         const effectiveSocket = isLocal ? socket : createTwilioProxy(socket, streamSid)
 
         // Merge window catches ASR fragmenting one utterance into multiple flushes.
-        // Worst case before LLM is called: SILENCE_DURATION_MS (1.4s) + this (0.7s) = 2.1s of silence.
-        const MERGE_WINDOW_MS = 700
+        // Worst case before LLM is called: SILENCE_DURATION_MS (0.9s) + this (0.4s) = 1.3s of silence.
+        const MERGE_WINDOW_MS = 400
 
         const flushUtterance = async () => {
           mergeTimer = null

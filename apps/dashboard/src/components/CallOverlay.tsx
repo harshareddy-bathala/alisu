@@ -81,6 +81,13 @@ export function CallOverlay({ callStatus, amplitude, messages, partialUserText, 
     if (callStatus !== 'speaking') setRevealedWords(Infinity)
   }, [callStatus])
 
+  // Track every alisu text we've ever started speaking, so a message bubble
+  // is allowed to render only after audio_meta has claimed it. This closes
+  // the small "full text appears, then animates" race between the dashboard
+  // websocket and the media-stream audio_meta arriving.
+  const claimedRef = useRef<Set<string>>(new Set())
+  if (speakingText) claimedRef.current.add(speakingText)
+
   const lastThree = messages.slice(-3)
   const lastAlisuIdx = lastThree.reduce((acc, m, i) => m.speaker === 'alisu' ? i : acc, -1)
   const langCode = LANG_LABEL[language ?? ''] ?? 'KN'
@@ -159,6 +166,12 @@ export function CallOverlay({ callStatus, amplitude, messages, partialUserText, 
         )}
 
         {lastThree.map((msg, i) => {
+          // Suppress an alisu bubble whose audio hasn't started yet — prevents
+          // the "full text flashes, then animates word-by-word" race when the
+          // dashboard-ws update beats audio_meta to the browser.
+          if (msg.speaker === 'alisu' && i === lastAlisuIdx && speakingText !== msg.text && !claimedRef.current.has(msg.text)) {
+            return null
+          }
           const isAnimatedMsg = i === lastAlisuIdx && speakingText === msg.text
           const displayText = isAnimatedMsg
             ? msg.text.trim().split(/\s+/).slice(0, revealedWords).join(' ')
