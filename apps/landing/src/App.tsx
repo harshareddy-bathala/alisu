@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 /* ────────────────── CONFIG (edit these for your demo) ────────────────── */
-const DEMO_URL    = 'http://167.71.238.122' // ← your DigitalOcean dashboard URL
 const GITHUB_URL  = 'https://github.com/harshareddy-bathala/alisu' // ← your repo
 const VIDEO_ID    = '2gmKhe9Cabc'                // ← YouTube ID (e.g. dQw4w9WgXcQ)
+// DEMO_URL removed: Alisu is local-only (browsers block microphone on non-HTTPS origins)
 
 const LANGUAGES = [
   { code: 'kn', name: 'Kannada',   word: 'ನಮಸ್ಕಾರ',     color: '#7C8CFF' },
@@ -125,13 +125,9 @@ function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hidden sm:inline-flex btn-ghost text-sm" style={{ padding: '0.55rem 1rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-            GitHub
-          </a>
-          <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn-primary text-sm" style={{ padding: '0.55rem 1.1rem' }}>
-            Live demo
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-primary text-sm" style={{ padding: '0.55rem 1.1rem' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            View on GitHub
           </a>
         </div>
       </div>
@@ -153,8 +149,8 @@ function Hero() {
         {/* Left — text */}
         <div className="space-y-7">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium tracking-wider uppercase glass animate-fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-            Live · Sarvam AI for Bharat 2025
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-dot" />
+            Local-only system · Sarvam AI for Bharat 2025
           </div>
 
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight animate-fade-up">
@@ -172,14 +168,33 @@ function Hero() {
           </p>
 
           <div className="flex flex-wrap items-center gap-3 animate-fade-up" style={{ animationDelay: '240ms' }}>
-            <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn-primary">
-              Try the live demo
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-            <a href="#demo" className="btn-ghost">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <a href="#demo" className="btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               Watch the demo
             </a>
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-ghost">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+              Run it locally
+            </a>
+          </div>
+
+          <div
+            className="rounded-xl px-4 py-3 text-sm flex items-start gap-3 animate-fade-up max-w-xl"
+            style={{
+              animationDelay: '300ms',
+              background: 'rgba(251, 191, 36, 0.08)',
+              border: '1px solid rgba(251, 191, 36, 0.25)',
+              color: 'rgba(254, 240, 138, 0.95)',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>
+              <strong className="font-semibold">Local-only system.</strong> Browsers block microphone access on non-HTTPS origins, so Alisu runs locally on your machine. Clone the repo and follow the README — no public hosted demo.
+            </span>
           </div>
 
           {/* Mini stats */}
@@ -446,10 +461,13 @@ function Demo() {
         </div>
 
         <div className="reveal text-center mt-12">
-          <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn-primary">
-            Try it yourself
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            Clone & run locally
           </a>
+          <p className="text-xs mt-4" style={{ color: 'rgba(254, 240, 138, 0.7)' }}>
+            Local-only — microphone access requires HTTPS or localhost.
+          </p>
         </div>
       </div>
     </section>
@@ -467,19 +485,15 @@ function Cta() {
 
           <div className="relative">
             <h3 className="font-display text-3xl sm:text-5xl font-bold tracking-tight mb-5">
-              Ready to hear Alisu?
+              Run Alisu locally.
             </h3>
             <p className="text-white/60 text-lg max-w-xl mb-8 leading-relaxed">
-              Open the live demo and place a test call. Speak in any of the supported languages — Kannada, Hindi, Tamil, Telugu, English. No setup needed.
+              Clone the repo, follow the README, and run on your machine. Speak in any of the supported languages — Kannada, Hindi, Tamil, Telugu, English, and more. Full setup in under 5 minutes.
             </p>
             <div className="flex flex-wrap gap-3">
-              <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn-primary">
-                Open the live demo
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-              </a>
-              <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-ghost">
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn-primary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-                Source on GitHub
+                Get started on GitHub
               </a>
             </div>
           </div>
@@ -496,7 +510,7 @@ function Footer() {
         <div>© 2026 · Alisu · Built for Sarvam AI for Bharat</div>
         <div className="flex items-center gap-5">
           <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-white/80 transition-colors">GitHub</a>
-          <a href={DEMO_URL} target="_blank" rel="noreferrer" className="hover:text-white/80 transition-colors">Live demo</a>
+          <a href="#demo" className="hover:text-white/80 transition-colors">Demo video</a>
         </div>
       </div>
     </footer>
